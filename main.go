@@ -32,6 +32,20 @@ type Claims struct {
 	jwt.StandardClaims
 }
 
+func CORSMiddleware() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		ctx.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+		ctx.Writer.Header().Set("Access-Control-Max-Age", "86400")
+		ctx.Writer.Header().Set("Access-Control-Allow-Headers", "*")
+		ctx.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+
+		if ctx.Request.Method == http.MethodOptions {
+			ctx.AbortWithStatus(200)
+		} else {
+			ctx.Next()
+		}
+	}
+}
 func AuthMiddleware() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		// 获取 authorization header
@@ -124,6 +138,7 @@ func main() {
 	db := InitDB()
 	db.DB()
 	r := gin.Default()
+	r.Use(CORSMiddleware())
 	r.POST("/api/reg", func(ctx *gin.Context) {
 
 		// name := ctx.PostForm("name")
@@ -163,8 +178,11 @@ func main() {
 
 	r.POST("/api/login", func(ctx *gin.Context) {
 
-		Name := ctx.PostForm("name")
-		password := ctx.PostForm("password")
+		var request = Users{}
+		ctx.Bind(&request)
+
+		Name := request.Name
+		password := request.Password
 
 		var user Users
 		db.Where("name = ?", Name).First(&user)
